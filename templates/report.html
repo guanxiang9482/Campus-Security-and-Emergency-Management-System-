@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Report Log - ABC Security</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+
+    <style>
+        :root { --primary: #2563eb; --bg: #f3f4f6; --text: #1f2937; }
+        
+        body { 
+            font-family: 'Inter', sans-serif; 
+            background: var(--bg); 
+            display: flex; 
+            justify-content: center; 
+            padding: 40px 20px; 
+            margin: 0;
+        }
+
+        .container { 
+            background: white; 
+            padding: 40px; 
+            border-radius: 16px; 
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08); 
+            width: 100%; 
+            max-width: 900px; 
+        }
+        
+        /* HEADER */
+        .header {
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            border-bottom: 2px solid #e5e7eb; 
+            padding-bottom: 20px; 
+            margin-bottom: 30px;
+        }
+        .header h2 { margin: 0; color: var(--primary); font-size: 24px; display: flex; align-items: center; gap: 10px; }
+        .back-link { text-decoration: none; color: #6b7280; font-weight: 500; transition: 0.2s; }
+        .back-link:hover { color: var(--text); }
+
+        /* FORM STYLING */
+        #submitForm {
+            background: #f9fafb;
+            padding: 25px;
+            border-radius: 12px;
+            border: 1px solid #e5e7eb;
+            margin-bottom: 40px;
+        }
+        .form-group { margin-bottom: 20px; }
+        label { display: block; margin-bottom: 8px; font-weight: 600; color: #374151; font-size: 14px; }
+        
+        input, textarea { 
+            width: 100%; 
+            padding: 12px; 
+            border: 1px solid #d1d5db; 
+            border-radius: 8px; 
+            font-size: 14px; 
+            box-sizing: border-box; 
+            transition: 0.2s;
+            font-family: inherit;
+        }
+        input:focus, textarea:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1); }
+
+        /* BUTTONS */
+        .btn { 
+            background: var(--primary); 
+            color: white; 
+            border: none; 
+            padding: 12px 24px; 
+            border-radius: 8px; 
+            cursor: pointer; 
+            font-size: 15px; 
+            font-weight: 600; 
+            transition: 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .btn:hover { background: #1d4ed8; transform: translateY(-1px); }
+        
+        .btn-green { background: #16a34a; }
+        .btn-green:hover { background: #15803d; }
+        
+        /* Small Print Button for Table */
+        .btn-sm-print {
+            padding: 6px 12px;
+            font-size: 12px;
+            background: #e5e7eb;
+            color: #374151;
+            border-radius: 6px;
+        }
+        .btn-sm-print:hover { background: #d1d5db; color: black; }
+
+        /* TABLE STYLING */
+        table { width: 100%; border-collapse: separate; border-spacing: 0; }
+        th { text-align: left; padding: 12px; border-bottom: 2px solid #e5e7eb; color: #6b7280; font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px; }
+        td { padding: 16px 12px; border-bottom: 1px solid #f3f4f6; color: #374151; vertical-align: top; }
+        tr:last-child td { border-bottom: none; }
+        
+        .badge { 
+            background: #dbeafe; 
+            color: var(--primary); 
+            padding: 4px 10px; 
+            border-radius: 20px; 
+            font-size: 12px; 
+            font-weight: 700;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <div class="header">
+            <h2><i class="fas fa-clipboard-list"></i> <span id="pageTitle">Report Log</span></h2>
+            
+            <button id="btnGenerate" class="btn btn-green" onclick="window.print()" style="display: none;">
+                <i class="fas fa-layer-group"></i> Print Full Log
+            </button>
+            
+            <a href="#" class="back-link" onclick="window.history.back()">← Back to Dashboard</a>
+        </div>
+
+        <div id="submitForm">
+            <h3 style="margin-top: 0; margin-bottom: 20px; color: #374151;">New Entry</h3>
+            <div class="form-group">
+                <label>Title</label>
+                <input type="text" id="rTitle" placeholder="e.g., Routine Patrol - Block A">
+            </div>
+            <div class="form-group">
+                <label>Location</label>
+                <input type="text" id="rPlace" placeholder="e.g., Cafeteria">
+            </div>
+            <div class="form-group">
+                <label>Details</label>
+                <textarea id="rContent" rows="3" placeholder="Describe the activity..."></textarea>
+            </div>
+            <div style="text-align: right;">
+                <button class="btn" onclick="submitReport()"><i class="fas fa-paper-plane"></i> Submit</button>
+            </div>
+        </div>
+
+        <h3 style="color: #374151; margin-bottom: 15px;">Activity History</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th style="width: 15%;">Time</th>
+                    <th style="width: 15%;">Staff</th>
+                    <th style="width: 45%;">Details</th>
+                    <th style="width: 15%;">Location</th>
+                    <th style="width: 10%;">Action</th> </tr>
+            </thead>
+            <tbody id="reportList"></tbody>
+        </table>
+    </div>
+
+    <script>
+        const urlParams = new URLSearchParams(window.location.search);
+        const currentId = urlParams.get('id');
+        const role = urlParams.get('role');
+
+        if (role === 'Admin') {
+            document.getElementById('pageTitle').innerText = "System Reports";
+            document.getElementById('submitForm').style.display = 'none';
+            document.getElementById('btnGenerate').style.display = 'inline-flex';
+        }
+
+        let allReports = []; // Store data locally so we can print easily
+
+        loadReports();
+
+        async function loadReports() {
+            try {
+                const resp = await fetch(`/api/reports?id=${currentId}&role=${role}`);
+                if(!resp.ok) {
+                    alert('System is not responding. Try refresh the page.');
+                    return;
+                }
+                allReports = await resp.json(); // Save data to global variable
+               
+                if(!allReports || allReports.length === 0) {
+                    const list = document.getElementById('reportList');
+                    list.innerHTML = `<tr><td colspan="5" style="text-align:center; padding: 30px; color:#999;">No records found in system.</td></tr>`;
+                    return;
+                }
+                
+                const list = document.getElementById('reportList');
+                
+                if(allReports.length === 0) {
+                    list.innerHTML = `<tr><td colspan="5" style="text-align:center; padding: 30px; color:#999;">No records found.</td></tr>`;
+                    return;
+                }
+
+                // IMPORTANT: notice we pass the INDEX (i) to the print button
+                list.innerHTML = allReports.map((item, i) => `
+                    <tr>
+                        <td style="color: #6b7280; font-size: 0.9em; font-weight: 500;">${item.time}</td>
+                        <td>
+                            <span class="badge">
+                                <i class="fas fa-user-shield" style="margin-right:4px;"></i> ${item.author}
+                            </span>
+                        </td>
+                        <td>
+                            <strong style="display:block; color: #111827; margin-bottom: 4px;">${item.title}</strong>
+                            <span style="color: #4b5563; line-height: 1.5; font-size: 0.95em;">${item.content}</span>
+                        </td>
+                        <td style="color: #6b7280;">${item.location}</td>
+                        <td>
+                            <button class="btn btn-sm-print" onclick="printSingleReport(${i})">
+                                <i class="fas fa-print"></i> Print
+                            </button>
+                        </td>
+                    </tr>
+                `).join('');
+                
+            } catch (error) { 
+                console.error(error); 
+            }
+        }
+
+        // --- Print Single Report ---
+        function printSingleReport(index) {
+            const r = allReports[index]; // Get the specific report data
+
+            // Open a temporary window
+            const printWindow = window.open('', '', 'height=600,width=800');
+
+            if(!printWindow){ 
+                alert('Report generation error. Try again later.');
+                return;
+            }
+            // Write the "Official Document" HTML structure into it
+            printWindow.document.write(`
+                <html>
+                <head>
+                    <title>Print Report #${r.id}</title>
+                    <style>
+                        body { font-family: 'Segoe UI', sans-serif; padding: 40px; color: #333; }
+                        .header { text-align: center; border-bottom: 2px solid #333; padding-bottom: 20px; margin-bottom: 30px; }
+                        h1 { margin: 0; font-size: 24px; text-transform: uppercase; }
+                        .meta { display: flex; justify-content: space-between; margin-bottom: 30px; color: #555; }
+                        .content-box { border: 1px solid #ddd; padding: 20px; min-height: 200px; background: #f9f9f9; }
+                        .footer { margin-top: 50px; font-size: 12px; text-align: center; color: #999; border-top: 1px solid #eee; padding-top: 20px; }
+                        .label { font-weight: bold; display: block; margin-bottom: 5px; color: #000; }
+                    </style>
+                </head>
+                <body>
+                    <div class="header">
+                        <h1>ABC University Security</h1>
+                        <p>Official Activity Report</p>
+                    </div>
+                    
+                    <div class="meta">
+                        <div><span class="label">REPORT ID:</span> #${r.id}</div>
+                        <div><span class="label">DATE/TIME:</span> ${r.time}</div>
+                        <div><span class="label">OFFICER:</span> ${r.author}</div>
+                    </div>
+
+                    <div style="margin-bottom: 20px;">
+                        <span class="label">LOCATION:</span>
+                        ${r.location}
+                    </div>
+
+                    <div style="margin-bottom: 10px;">
+                        <span class="label">SUBJECT / TITLE:</span>
+                        <div style="font-size: 1.2em;">${r.title}</div>
+                    </div>
+
+                    <span class="label">DETAILED DESCRIPTION:</span>
+                    <div class="content-box">
+                        ${r.content}
+                    </div>
+
+                    <div class="footer">
+                        Generated by CMES System | Printed on ${new Date().toLocaleString()}
+                    </div>
+                </body>
+                </html>
+            `);
+
+            printWindow.document.close(); // Finish writing
+            printWindow.focus(); // Bring to front
+            
+            // Wait a tiny bit for styles to load, then print
+            setTimeout(() => {
+                printWindow.print();
+                printWindow.close();
+            }, 500);
+        }
+
+        async function submitReport() {
+            const title = document.getElementById('rTitle').value;
+            const content = document.getElementById('rContent').value;
+            const place = document.getElementById('rPlace').value;
+
+            if(!title || !content || !place) return alert("Please fill in all fields.");
+
+            const resp = await fetch(`/submit_report?id=${currentId}&title=${encodeURIComponent(title)}&content=${encodeURIComponent(content)}&place=${encodeURIComponent(place)}`, { method: 'POST' });
+
+            if(resp.ok) {
+                alert("Report Submitted!");
+                location.reload();
+            } else {
+                alert("Error submitting report");
+            }
+        }
+    </script>
+</body>
+</html>

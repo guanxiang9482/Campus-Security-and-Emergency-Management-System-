@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>ABC Security - Create Account</title>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; background: #f8f9fa; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; }
+        .reg-card { background: white; padding: 40px; border-radius: 8px; border: 1px solid #dadce0; width: 450px; }
+        h2 { font-weight: 400; font-size: 24px; margin-bottom: 24px; }
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+        .full { grid-column: span 2; }
+        label { display: block; font-size: 12px; color: #70757a; margin-bottom: 5px; font-weight: 500; }
+        input, select { width: 100%; padding: 10px; border: 1px solid #dadce0; border-radius: 4px; box-sizing: border-box; font-size: 14px; }
+        .actions { display: flex; justify-content: space-between; align-items: center; margin-top: 35px; }
+        .btn-text { color: #1a73e8; font-weight: 500; cursor: pointer; background: none; border: none; }
+        .btn-blue { background: #1a73e8; color: white; padding: 10px 24px; border-radius: 4px; border: none; font-weight: 500; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <div class="reg-card">
+        <h2>Create your own Account</h2>
+        <form action="/register" method="POST">
+            <div class="grid">
+                <div class="full">
+                    <label>FULL NAME</label>
+                    <input type="text" name="name" 
+                    title="Name should only contain letters and spaces."
+                    pattern="[A-Za-z ]+" required>
+                </div>
+                <div>
+                    <label>EMAIL</label>
+                    <input type="email" name="email" required>
+                </div>
+                <div>
+                    <label>PHONE (+60)</label>
+                    <input type="tel" name="phone" minlength="8" required>
+                </div>
+                <div class="full">
+                    <label>PASSWORD</label>
+                    <input type="password" name="password" minlength="8" maxlength="12"
+                    pattern="(?=.*[!@#$%^&*()\-=_+]).{8,12}"
+                    title="Password length must be between 8 and 12 characters and must contain at least one special character." 
+                    required>
+                </div>
+                <div>
+                    <label> When is your mother's DOB?</label>
+                    <input type="date" name="SQ1" required>
+                </div>
+
+                <div>
+                    <label>Where is your hometown?</label>
+                    <input type="text" name="SQ2" required>
+                </div>
+
+                <div class="full">
+                    <label>USER ROLE</label>
+                    <select name="role">
+                        <option value="Student">Student</option>
+                        <option value="Staff">Staff</option>
+                        <option value="Security Staff">Security Staff</option>
+                        <option value="Admin">Admin</option>
+                    </select>
+                </div>
+                <div class="full" id="studentFields">
+                    <div class="grid">
+                        <div>
+                            <label>COURSE (Required for Student)</label>
+                            <input type="text" name="course">
+                        </div>
+                        <div>
+                            <label>YEAR OF STUDY  (Required for Student)</label>
+                            <input type="number" name="year" min="1" max="5">
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="actions">
+                <button type="button" class="btn-text" onclick="location.href='/'">Sign in instead</button>
+                <button type="submit" class="btn-blue" onclick="return confirm('Are you sure you want to submit this form?')">Register</button>
+            </div>
+        </form>
+    </div>
+</body>
+</html>

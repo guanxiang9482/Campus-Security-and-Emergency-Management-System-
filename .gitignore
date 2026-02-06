@@ -1,0 +1,8 @@
+.vs/
+.vscode/
+*.ipch
+*.obj
+*.o
+*.exe
+*.dll
+!libmysql.dll

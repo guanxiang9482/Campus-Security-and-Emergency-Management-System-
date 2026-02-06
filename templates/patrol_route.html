@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Patrol Route Log</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; background: #f0f2f5; padding: 40px; display: flex; justify-content: center; }
+        .container { width: 100%; max-width: 600px; background: white; padding: 30px; border-radius: 12px; box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
+        h2 { color: #1e293b; text-align: center; margin-bottom: 25px; }
+        
+        /* Available Routes List */
+        .route-card { background: #f8fafc; border: 1px solid #e2e8f0; padding: 20px; border-radius: 8px; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center; }
+        .btn-take { background: #2563eb; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: 600; }
+        .btn-take:hover { background: #1d4ed8; }
+
+        /* Checkpoint List */
+        .checkpoint-item { display: flex; align-items: center; justify-content: space-between; padding: 15px; border-bottom: 1px solid #eee; }
+        .cp-name { font-weight: 600; color: #334155; }
+        .status-signed { color: #16a34a; font-weight: bold; }
+        
+        .btn-sign { background: #cbd5e1; color: #475569; border: none; padding: 8px 12px; border-radius: 6px; cursor: pointer; }
+        .btn-sign.active { background: #22c55e; color: white; cursor: default; }
+
+        .btn-finish { width: 100%; background: #1e293b; color: white; padding: 15px; border: none; border-radius: 8px; margin-top: 20px; font-size: 16px; cursor: pointer; }
+        .btn-back { background: #94a3b8; border: none; padding: 8px 15px; border-radius: 6px; color: white; cursor: pointer; margin-bottom: 20px; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <button class="btn-back" onclick="location.href='/Dashboard.html?role=Security Staff&id='+window.currentId">&larr; Dashboard</button>
+    
+    <div id="loading" style="text-align: center;">Loading...</div>
+
+    <div id="selectionView" style="display: none;">
+        <h2>Select a Patrol Route</h2>
+        <div id="routesList"></div>
+    </div>
+
+    <div id="activeView" style="display: none;">
+        <h2 id="routeName">Route Alpha</h2>
+        <div class="progress-bar" style="background:#eee; height:6px; border-radius:3px; margin-bottom:20px;">
+            <div id="progressFill" style="background:#2563eb; height:100%; width:0%; transition: 0.3s; border-radius:3px;"></div>
+        </div>
+        <div id="checkpointList"></div>
+        <button id="finishBtn" class="btn-finish" style="display:none;" onclick="finishPatrol()">✅ Complete Patrol</button>
+    </div>
+</div>
+
+<script>
+    const urlParams = new URLSearchParams(window.location.search);
+    window.currentId = urlParams.get('id') || '1'; // Default to 1 for testing
+    let currentRouteId = -1;
+
+    loadPatrolData();
+
+    async function loadPatrolData() {
+        const resp = await fetch(`/api/patrol/get?id=${window.currentId}`);
+        const data = await resp.json();
+        
+        document.getElementById('loading').style.display = 'none';
+
+        if(data.has_route) {
+            // SHOW ACTIVE PATROL
+            showActiveView(data);
+        } else {
+            // SHOW SELECTION LIST
+            showSelectionView(data.available_routes);
+        }
+    }
+
+    function showSelectionView(routes) {
+        document.getElementById('selectionView').style.display = 'block';
+        document.getElementById('activeView').style.display = 'none';
+        
+        const list = document.getElementById('routesList');
+        if(routes.length === 0) {
+            list.innerHTML = "<p>No routes available.</p>";
+            return;
+        }
+        list.innerHTML = routes.map(r => `
+            <div class="route-card">
+                <strong>${r.name}</strong>
+                <button class="btn-take" onclick="assignRoute(${r.id})">Start Patrol</button>
+            </div>
+        `).join('');
+    }
+
+    function showActiveView(data) {
+        document.getElementById('selectionView').style.display = 'none';
+        document.getElementById('activeView').style.display = 'block';
+        
+        currentRouteId = data.route_id;
+        document.getElementById('routeName').innerText = data.route_name;
+        
+        let signedCount = 0;
+        const total = data.checkpoints.length;
+        
+        const html = data.checkpoints.map((cp, index) => {
+            if(cp.signed) signedCount++;
+            return `
+            <div class="checkpoint-item">
+                <span class="cp-name">${cp.name}</span>
+                ${cp.signed 
+                    ? '<span class="status-signed"><i class="fas fa-check-circle"></i> Signed</span>' 
+                    : `<button class="btn-sign" onclick="signPoint(${index})">Sign</button>`
+                }
+            </div>
+            `;
+        }).join('');
+        
+        document.getElementById('checkpointList').innerHTML = html;
+
+        // Update Progress Bar
+        const pct = (signedCount / total) * 100;
+        document.getElementById('progressFill').style.width = pct + "%";
+
+        // Show Finish Button if all signed
+        if(signedCount === total) {
+            document.getElementById('finishBtn').style.display = 'block';
+        }
+    }
+
+    async function assignRoute(rid) {
+        await fetch(`/api/patrol/assign?uid=${window.currentId}&rid=${rid}`, { method: 'POST' });
+        loadPatrolData();
+    }
+
+    async function signPoint(index) {
+        await fetch(`/api/patrol/sign?rid=${currentRouteId}&index=${index}`, { method: 'POST' });
+        loadPatrolData();
+    }
+
+    async function finishPatrol() {
+        if(!confirm("Submit Patrol Report? This will release the route.")) return;
+        await fetch(`/api/patrol/complete?rid=${currentRouteId}`, { method: 'POST' });
+        loadPatrolData(); // Should go back to selection screen
+    }
+</script>
+
+</body>
+</html>
+
+<!-- UPDATE patrol_route 
+SET status='Pending', assigned_security_id=NULL, 
+    checkpoints=REGEXP_REPLACE(checkpoints, ':1', ':0'); -->

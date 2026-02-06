@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Escort Request - C.M.E.S.</title>
+    <style>
+        body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            background: #f0f2f5; 
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            min-height: 100vh; 
+            margin: 0; 
+        }
+
+        .container { 
+            background: white; 
+            padding: 40px; 
+            border-radius: 15px; 
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1); 
+            width: 100%; 
+            max-width: 500px; /* Much narrower for a cleaner look */
+        }
+
+        h2 { 
+            color: #1a73e8; 
+            text-align: center; 
+            margin-bottom: 30px; 
+            font-size: 24px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label { 
+            display: block; 
+            margin-bottom: 8px; 
+            font-weight: 600; 
+            color: #444; 
+        }
+
+        input, select, textarea { 
+            width: 100%; 
+            padding: 12px; 
+            border: 1px solid #ddd; 
+            border-radius: 8px; 
+            box-sizing: border-box; 
+            font-size: 14px; 
+            font-family: inherit;
+            transition: 0.3s;
+        }
+
+        input:focus, select:focus, textarea:focus { 
+            outline: none; 
+            border-color: #1a73e8; 
+            box-shadow: 0 0 0 3px rgba(26,115,232,0.1); 
+        }
+
+        textarea {
+            resize: vertical; /* Allow vertical resizing only */
+        }
+
+        .btn-submit { 
+            background: #1a73e8; 
+            color: white; 
+            border: none; 
+            padding: 14px; 
+            border-radius: 8px; 
+            width: 100%; 
+            font-size: 16px; 
+            font-weight: bold; 
+            cursor: pointer; 
+            margin-top: 10px;
+            transition: background 0.3s;
+        }
+
+        .btn-submit:hover { 
+            background: #1557b0; 
+        }
+
+        .hidden { display: none; }
+
+        /* Row for side-by-side inputs (Location & Distance) */
+        .row {
+            display: flex;
+            gap: 15px;
+        }
+        .col {
+            flex: 1;
+        }
+
+        /* Styles for the Staff Table View */
+        #staffView {
+            width: 100%;
+            max-width: 900px; /* Staff view can be wider */
+        }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { padding: 12px; border-bottom: 1px solid #eee; text-align: left; }
+        th { background: #f8f9fa; color: #1a73e8; font-weight: 600; }
+        .btn-solved { background: #28a745; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 12px; }
+        .btn-solved:hover { background: #218838; }
+        button { background: #1a73e8; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; width: 100%; font-size: 16px; }
+
+    </style>
+</head>
+<body>
+    <div id="studentView" class="container hidden">
+        <button onclick="window.history.back()" style="width: auto; margin-bottom: 10px; background: #ccc;">&larr; Back</button>
+        <h2>🚓 Escort Request</h2>
+        <form action="/submit_escort" method="POST">
+            <input type="hidden" name="user_id" id='userIdInput'>
+
+            <div class="form-group">
+                <label>Description</label>
+                <textarea name="description" rows="4" placeholder="Describe what you saw..." required></textarea>
+            </div>
+
+            <div class="row">
+                <div class="col">
+                    <div class="form-group">
+                        <label>Location</label>
+                        <input type="text" name="location" placeholder="e.g. Block A, Lvl 2" required>
+                    </div>
+                </div>
+            </div>
+
+            <button type="submit" class="btn-submit">SUBMIT REQUEST</button>
+        </form>
+
+
+    </div>
+
+    <div id="staffView" class="container hidden" style="max-width: 800px;">
+        <button onclick="window.history.back()" style="width: auto; margin-bottom: 10px; background: #ccc;">&larr; Back</button>
+        <h2>📋 Escort Request Log</h2>
+        <table id="RequestTable">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Student Name</th>
+                    <th>Description</th>
+                    <th>Location</th>
+                    <th>Status</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody id="logBody">
+                </tbody>
+        </table>
+    </div>
+
+    <script>
+        const urlParams = new URLSearchParams(window.location.search);
+        const role = urlParams.get('role');
+        const userId = urlParams.get('id'); // Changed from user_id to match dashboard
+
+        if (role === 'Student') {
+            document.getElementById('studentView').classList.remove('hidden');
+            document.getElementById('userIdInput').value = userId;
+        } else if (role === 'Security Staff') {
+            document.getElementById('staffView').classList.remove('hidden');
+            loadRequests();
+        }
+
+        async function loadRequests() {
+            try {
+                const response = await fetch('/get_all_requests');
+                const data = await response.json();
+                const body = document.getElementById('logBody');
+                
+                if(data.length === 0) {
+                    body.innerHTML = '<tr><td colspan="5" style="text-align:center">No requests found.</td></tr>';
+                    return;
+                }
+
+                body.innerHTML = data.map(req => `
+                    <tr>
+                        <td>#${req.id}</td>
+                        <td>#${req.name}</td>
+                        <td>${req.description}</td>
+                        <td>${req.location}</td>
+                        <td>
+                            <span style="color: ${req.status === 'Open' ? 'green' : 'red'}; font-weight:bold;">
+                                ${req.status}
+                            </span>
+                        </td>
+                        <td>
+                            ${req.status !== 'Assigned' ? 
+                              `<button class="btn-solved" onclick="updateStatus(${req.id})">Mark Assigned</button>` : 
+                              '✅'}
+                        </td>
+                    </tr>
+                `).join('');
+            } catch (error) {
+                console.error("Error loading requests:", error);
+            }
+        }
+
+        async function updateStatus(escortId) {
+            if(confirm("Confirm this request is resolved?")) {
+                await fetch(`/update_escort_status?id=${escortId}&status=Assigned&userid=${userId}`, { method: 'POST' });
+                loadRequests(); // Refresh table
+            }
+        }
+    </script>
+</body>
+</html>

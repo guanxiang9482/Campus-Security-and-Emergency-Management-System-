@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>CMES Dashboard</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+    
+    <style>
+        :root { 
+            --primary: #2563eb;       
+            --bg-color: #f3f4f6;      
+            --card-bg: #ffffff;
+            --sidebar-bg: #1e293b;    
+            --danger: #dc2626;
+            --success: #16a34a;
+        }
+
+        body { 
+            font-family: 'Inter', sans-serif; 
+            background: var(--bg-color); 
+            margin: 0; 
+            display: flex; 
+            height: 100vh;
+            overflow: hidden; 
+        }
+        
+        /* SIDEBAR */
+        .sidebar { 
+            width: 260px; 
+            background: var(--sidebar-bg); 
+            color: white; 
+            display: flex; 
+            flex-direction: column;
+            padding: 24px;
+            box-shadow: 4px 0 24px rgba(0,0,0,0.05);
+        }
+
+        .brand { font-size: 22px; font-weight: 700; color: white; margin-bottom: 40px; display: flex; align-items: center; gap: 12px; }
+        .brand i { color: var(--primary); }
+
+        .nav-item { padding: 14px 16px; margin-bottom: 8px; border-radius: 8px; cursor: pointer; color: #94a3b8; font-size: 14px; font-weight: 500; display: flex; align-items: center; gap: 12px; transition: all 0.2s ease; }
+        .nav-item:hover { background: rgba(255,255,255,0.05); color: white; transform: translateX(4px); }
+        .nav-active { background: var(--primary) !important; color: white !important; box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3); }
+
+        .sidebar-footer { margin-top: auto; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 20px; }
+
+        /* MAIN CONTENT */
+        .main-content { flex: 1; padding: 40px; overflow-y: auto; }
+
+        header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 40px; }
+        .welcome-text h1 { margin: 0; font-size: 28px; font-weight: 600; color: #111827; }
+        .welcome-text p { margin: 4px 0 0; color: #64748b; font-size: 14px; }
+
+        .user-badge { background: white; padding: 8px 16px; border-radius: 50px; display: flex; align-items: center; gap: 10px; font-size: 14px; font-weight: 600; color: #374151; border: 1px solid #e5e7eb; }
+        .role-tag { background: #dbeafe; color: var(--primary); padding: 2px 10px; border-radius: 20px; font-size: 12px; text-transform: uppercase; }
+
+        /* GRID */
+        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 24px; }
+
+        .feature-card { 
+            background: var(--card-bg); 
+            padding: 24px; 
+            border-radius: 16px; 
+            border: 1px solid #f1f5f9;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); 
+            cursor: pointer; 
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            min-height: 160px;
+        }
+
+        .feature-card:hover { transform: translateY(-4px); box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1); border-color: var(--primary); }
+
+        .icon-box { width: 48px; height: 48px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 20px; margin-bottom: 20px; background: #eff6ff; color: var(--primary); }
+        .icon-danger { background: #fef2f2; color: var(--danger); }
+        .icon-success { background: #f0fdf4; color: var(--success); }
+        .icon-purple { background: #faf5ff; color: #9333ea; }
+
+        .feature-card h3 { margin: 0 0 8px 0; font-size: 18px; color: #1e293b; font-weight: 600; }
+        .feature-card p { font-size: 13px; color: #64748b; margin: 0; line-height: 1.5; }
+
+        .card-arrow { position: absolute; bottom: 24px; right: 24px; opacity: 0; transform: translateX(-10px); transition: all 0.3s ease; color: var(--primary); }
+        .feature-card:hover .card-arrow { opacity: 1; transform: translateX(0); }
+
+        /* Stop Button Styling */
+        .btn-stop-small {
+            width: 100%;
+            margin-top: 10px;
+            padding: 8px;
+            background-color: #fce7f3; /* Light Pink bg */
+            color: #be185d; /* Dark Pink text */
+            border: 1px solid #fbcfe8;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 13px;
+            transition: 0.2s;
+            text-align: center;
+        }
+        .btn-stop-small:hover { background-color: #fbcfe8; }
+
+        /* EMERGENCY OVERLAY */
+        #emergencyOverlay { backdrop-filter: blur(5px); animation: pulse-bg 2s infinite; }
+        @keyframes pulse-bg {
+            0% { background: rgba(220, 38, 38, 0.9); }
+            50% { background: rgba(185, 28, 28, 0.95); }
+            100% { background: rgba(220, 38, 38, 0.9); }
+        }
+    </style>
+
+    <script>
+        const urlParams = new URLSearchParams(window.location.search);
+        window.currentId = urlParams.get('id');
+        window.userName = urlParams.get('name');
+        window.role = urlParams.get('role');
+    </script>
+</head>
+<body>
+
+    <div class="sidebar">
+        <div class="brand"><i class="fas fa-shield-alt"></i> CMES</div>
+        <div class="nav-item nav-active"><i class="fas fa-th-large"></i> Dashboard</div>
+        <div class="nav-item" onclick="goToProfile()"><i class="fas fa-user"></i> My Profile</div>
+        <div class="sidebar-footer">
+        <div class="nav-item" onclick="ConfirmLogOut()" style="color: #ef4444;"><i class="fas fa-sign-out-alt"></i> Log Out</div>
+        </div>
+    </div>
+
+    <div class="main-content">
+        <header>
+            <div class="welcome-text">
+                <h1>Welcome back, <span id="dispName">User</span> 👋</h1>
+                <p>System status: Normal</p>
+            </div>
+
+            <div style="display: flex; align-items: center; gap: 20px;">
+                <div class="user-badge">
+                    <i class="fas fa-user-circle"></i>
+                    <span id="dispRole" class="role-tag">Loading...</span>
+                </div>
+
+                <div style="position: relative; cursor: pointer;" onclick="toggleMailbox()">
+                    <i class="fas fa-bell" style="font-size: 24px; color: #64748b; transition: color 0.2s;"></i>
+                    <span id="notifBadge" style="display:none; position: absolute; top: -2px; right: -2px; background: #ef4444; color: white; font-size: 10px; font-weight:bold; padding: 2px 5px; border-radius: 50%; border: 2px solid var(--bg-color);">New</span>
+                    <div id="mailboxDropdown" style="display: none; position: absolute; top: 40px; right: 0; width: 300px; background: white; color: #333; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.15); z-index: 1000; border: 1px solid #e2e8f0; overflow: hidden;">
+                        <div style="padding: 12px 16px; border-bottom: 1px solid #f1f5f9; font-weight: 600; background: #f8fafc; color: #475569;">
+                            Notifications
+                        </div>
+                        <div id="msgList" style="max-height: 300px; overflow-y: auto;"></div>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <div class="grid">
+
+            <div id="studentOptions" style="display: none;">
+                <div class="feature-card" onclick="window.location.href='/incident.html?role=Student&id=' + window.currentId">
+                    <div class="icon-box icon-danger"><i class="fas fa-exclamation-triangle"></i></div>
+                    <div><h3>Report Incident</h3><p>Submit hazards or suspicious activities.</p></div>
+                    <i class="fas fa-arrow-right card-arrow"></i>
+                </div>
+                <div class="feature-card" onclick="location.href='/digital_id.html?role=Student&id=' + window.currentId">
+                    <div class="icon-box"><i class="fas fa-id-card"></i></div>
+                    <div><h3>Digital ID</h3><p>Access your virtual student pass.</p></div>
+                    <i class="fas fa-arrow-right card-arrow"></i>
+                </div>
+                <div class="feature-card" onclick="location.href='/escort.html?role=Student&id=' + window.currentId">
+                    <div class="icon-box icon-purple"><i class="fas fa-user-shield"></i></div>
+                    <div><h3>Request Escort</h3><p>Request security accompaniment.</p></div>
+                    <i class="fas fa-arrow-right card-arrow"></i>
+                </div>
+            </div>
+
+            <div id="securityOptions" style="display: none;">
+                
+                <div style="display: flex; flex-direction: column;">
+                    
+                    <div class="feature-card" onclick="triggerCodeRed()" style="border-color: #fee2e2; flex: 1;">
+                        <div class="icon-box icon-danger"><i class="fas fa-bullhorn"></i></div>
+                        <div><h3 style="color: var(--danger);">Code Red</h3><p>Broadcast emergency alert.</p></div>
+                        <i class="fas fa-arrow-right card-arrow"></i>
+                    </div>
+
+                    <button class="btn-stop-small" onclick="stopBroadcast()">
+                        <i class="fas fa-stop-circle"></i> Stop / Resolve Emergency
+                    </button>
+                </div>
+
+                <div class="feature-card" onclick="location.href='/patrol?id=' + window.currentId">
+                    <div class="icon-box"><i class="fas fa-route"></i></div>
+                    <div><h3>Patrol Log</h3><p>View assignments.</p></div>
+                    <i class="fas fa-arrow-right card-arrow"></i>
+                </div>
+                <div class="feature-card" onclick="location.href='/escort.html?role=Security Staff&id=' + window.currentId">
+                    <div class="icon-box icon-purple"><i class="fas fa-headset"></i></div>
+                    <div><h3>Handle Escort</h3><p>Manage incoming requests.</p></div>
+                    <i class="fas fa-arrow-right card-arrow"></i>
+                </div>
+            </div>
+
+            <div id="staffOptions" style="display: none;">
+                <div class="feature-card" onclick="location.href='/report.html?role=Staff&id=' + window.currentId">
+                    <div class="icon-box"><i class="fas fa-clipboard-list"></i></div>
+                    <div><h3>Report Log</h3><p>Daily activity logging.</p></div>
+                    <i class="fas fa-arrow-right card-arrow"></i>
+                </div>
+                <div class="feature-card" onclick="location.href='/incident.html?role=Staff&id='+ window.currentId">
+                    <div class="icon-box icon-danger"><i class="fas fa-history"></i></div>
+                    <div><h3>Incident Log</h3><p>Review past incidents.</p></div>
+                    <i class="fas fa-arrow-right card-arrow"></i>
+                </div>
+                <div class="feature-card" onclick="location.href='/digital_id.html?role=Staff&id=' + window.currentId">
+                    <div class="icon-box icon-success"><i class="fas fa-user-check"></i></div>
+                    <div><h3>Verify ID</h3><p>Scan and approve student IDs.</p></div>
+                    <i class="fas fa-arrow-right card-arrow"></i>
+                </div>
+            </div>
+
+            <div id="adminOptions" style="display: none;">
+                <div class="feature-card" onclick="location.href='/report.html?role=Admin&id=' + window.currentId">
+                    <div class="icon-box"><i class="fas fa-chart-line"></i></div>
+                    <div><h3>Report Log</h3><p>Monitor performance metrics.</p></div>
+                    <i class="fas fa-arrow-right card-arrow"></i>
+                </div>
+                <div class="feature-card" onclick="location.href='/resources.html?id=' + window.currentId">
+                    <div class="icon-box icon-purple"><i class="fas fa-boxes"></i></div>
+                    <div><h3>Resources</h3><p>Manage emergency assets.</p></div>
+                    <i class="fas fa-arrow-right card-arrow"></i>
+                </div>
+                <div class="feature-card" onclick="location.href='/manage_users.html'">
+                    <div class="icon-box"><i class="fas fa-users-cog"></i></div>
+                    <div><h3>User Management</h3><p>Edit profiles and roles.</p></div>
+                    <i class="fas fa-arrow-right card-arrow"></i>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <div id="emergencyOverlay" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 9999; flex-direction: column; justify-content: center; align-items: center; color: white; text-align: center;">
+        <i class="fas fa-exclamation-triangle" style="font-size: 80px; margin-bottom: 20px;"></i>
+        <h1 style="font-size: 60px; margin: 0; font-weight: 800;">CODE RED</h1>
+        <h2 id="emergencyMsg" style="font-size: 30px; font-weight: 400; margin-top: 10px;">EVACUATE IMMEDIATELY</h2>
+        <p style="margin-top: 30px; font-size: 18px; opacity: 0.9;">Please follow Security Staff instructions.</p>
+    </div>
+
+    <script>
+        // 1. Set Name and Role in Header
+        if(window.userName) document.getElementById('dispName').innerText = window.userName;
+        if(window.role) document.getElementById('dispRole').innerText = window.role;
+
+        // 2. Logic to Show Correct Cards
+        if(window.role == "Student") document.getElementById('studentOptions').style.display = 'contents';
+        else if(window.role == "Security Staff") document.getElementById('securityOptions').style.display = 'contents';
+        else if(window.role == "Staff") document.getElementById('staffOptions').style.display = 'contents';
+        else if(window.role == "Admin") document.getElementById('adminOptions').style.display = 'contents';
+
+        // 3. Navigation Functions
+        function goToProfile() {
+            if (window.currentId) window.location.href = "/profile?id=" + window.currentId;
+            else alert("User ID not found.");
+        }
+
+        function ConfirmLogOut(){
+            if(confirm("Log out?")){
+                localStorage.clear();
+                window.location.href='/';
+            }
+        }
+
+        // 4. Emergency Polling
+        let pollTimer = null;         
+        let hasEmergencyStarted = false; 
+
+        // Start Polling Loop
+        startPolling();
+
+        function startPolling() {
+            if (pollTimer) clearInterval(pollTimer);
+            pollTimer = setInterval(checkForEmergency, 2000);
+            console.log("Polling started.");
+        }
+
+        function killPolling() {
+            if (pollTimer) {
+                clearInterval(pollTimer);
+                pollTimer = null; 
+            }
+        }
+
+        // --- CHECK FUNCTION ---
+        async function checkForEmergency() {
+            try {
+                const resp = await fetch('/api/check_emergency');
+                
+                if (resp.ok) {
+                    const data = await resp.json();
+                    const overlay = document.getElementById('emergencyOverlay');
+                    
+                    if (data.active) {
+                        // === EMERGENCY ACTIVE ===
+                        hasEmergencyStarted = true; 
+                        
+                        // SECURITY STAFF CHECK: 
+                        // Do NOT show the blocking overlay for Security Staff. 
+                        // They need to see the Dashboard to click "Stop".
+                        if (window.role === 'Security Staff') {
+                            overlay.style.display = 'none'; 
+                        } else {
+                            // Everyone else sees the permanent overlay
+                            overlay.style.display = 'flex';
+                            document.getElementById('emergencyMsg').innerText = data.message;
+                        }
+
+                    } else {
+                        // === EMERGENCY RESOLVED ===
+                        overlay.style.display = 'none';
+
+                        // Logic to stop heavy polling if needed
+                        if (hasEmergencyStarted) {
+                            killPolling(); 
+                        }
+                    }
+                }
+            } catch (e) { }
+        }
+
+        // --- TRIGGER (Security Staff) ---
+        async function triggerCodeRed() {
+            if(!confirm("⚠️ TRIGGER CODE RED?")) return;
+            
+            await fetch('/api/trigger_emergency?active=true&message=EMERGENCY! EVACUATE NOW!', { method: 'POST' });
+            
+            if (!pollTimer) startPolling();
+            checkForEmergency(); 
+        }
+        
+        // --- STOP (Security Staff) ---
+        async function stopBroadcast() {
+            if(!confirm("Resolve Emergency?")) return;
+            
+            await fetch('/api/trigger_emergency?active=false&message=Alert Resolved', { method: 'POST' });
+            
+            // Trigger check immediately
+            checkForEmergency();
+        }
+
+        // --- NOTIFICATIONS ---
+        setInterval(checkNotifications, 5000);
+
+        async function checkNotifications() {
+            if(!window.currentId) return;
+
+            try {
+                const resp = await fetch(`/api/notifications?id=${window.currentId}`);
+                const msgs = await resp.json();
+                
+                const badge = document.getElementById('notifBadge');
+                const list = document.getElementById('msgList');
+                
+                if (msgs.length > 0) {
+                    badge.style.display = 'block'; 
+                    
+                    list.innerHTML = msgs.map(m => `
+                        <div style="padding: 10px; border-bottom: 1px solid #eee; font-size: 0.9em;">
+                            <div style="color: #2563eb; font-weight: 600; margin-bottom: 2px;">System Update</div>
+                            <div>${m.message}</div>
+                            <div style="color: #999; font-size: 0.8em; margin-top: 5px;">${m.time}</div>
+                        </div>
+                    `).join('');
+                } else {
+                    badge.style.display = 'none';
+                    list.innerHTML = '<div style="padding:15px; text-align:center; color:#999;">No notifications</div>';
+                }
+            } catch (e) { console.error(e); }
+        }
+
+        function toggleMailbox() {
+            const box = document.getElementById('mailboxDropdown');
+            box.style.display = box.style.display === 'block' ? 'none' : 'block';
+        }
+    </script>
+</body>
+</html>

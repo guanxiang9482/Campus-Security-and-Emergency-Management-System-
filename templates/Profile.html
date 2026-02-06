@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>User Profile - ABC Security</title>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; background: #f0f2f5; display: flex; justify-content: center; padding: 50px; }
+        .profile-card { background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); width: 400px; }
+        h2 { color: #1a73e8; border-bottom: 2px solid #e8f0fe; padding-bottom: 10px; }
+        .info-group { margin-bottom: 15px; text-align: left; }
+        label { font-weight: bold; color: #70757a; font-size: 12px; text-transform: uppercase; }
+        p { margin: 5px 0 0 0; color: #3c4043; font-size: 16px; }
+    </style>
+</head>
+<body>
+    <div class="profile-card">
+        <h2>My Profile</h2>
+        <div class="info-group">
+            <label>Full Name</label>
+            <p>{{name}}</p>
+        </div>
+        <div class="info-group">
+            <label>Email Address</label>
+            <p>{{email}}</p>
+        </div>
+        <div class="info-group">
+            <label>Role</label>
+            <p>{{role}}</p>
+        </div>
+        <div class="info-group">
+            <label>Contact Number</label>
+            <p>{{phone}}</p>
+        </div>
+        <button onclick="location.href='/Dashboard.html?id=' + '{{user_id}}'+ '&name=' + '{{name}}' + '&role=' + '{{role}}'"  style="margin-top:20px; width:100%; padding:10px; background:#1a73e8; color:white; border:none; border-radius:5px; cursor:pointer;">Back to Dashboard</button>
+    </div>
+</body>
+</html>

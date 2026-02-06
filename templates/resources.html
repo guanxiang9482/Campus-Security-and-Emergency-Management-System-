@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Resource Management</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; background: #f0f2f5; padding: 40px; }
+        .container { max-width: 1100px; margin: 0 auto; background: white; padding: 30px; border-radius: 12px; box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
+        
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        h2 { color: #1a73e8; margin: 0; }
+        
+        .btn { padding: 8px 15px; border-radius: 6px; border: none; cursor: pointer; font-weight: bold; color: white; }
+        .btn-add { background: #28a745; }
+        .btn-back { background: #6c757d; text-decoration: none; display: inline-block; }
+        .btn-edit { background: #ffc107; color: #333; margin-right: 5px; }
+        .btn-del { background: #dc3545; }
+
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+        th, td { padding: 12px; border-bottom: 1px solid #ddd; text-align: left; }
+        th { background: #f8f9fa; color: #555; }
+        
+        /* Modal */
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); justify-content: center; align-items: center; }
+        .modal-content { background: white; padding: 30px; border-radius: 10px; width: 400px; }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; font-weight: bold; }
+        input, select { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box; }
+    </style>
+    <script>
+        // Grab current Admin ID from URL (e.g., ?id=17)
+        const urlParams = new URLSearchParams(window.location.search);
+        window.currentId = urlParams.get('id');
+    </script>
+</head>
+<body>
+
+<div class="container">
+    <div class="header">
+        <h2>📦 Emergency Resources</h2>
+        <div>
+            <button class="btn btn-add" onclick="openModal()">+ Add New</button>
+            <a href="#" class="btn btn-back" onclick="window.history.back()">Back</a>
+        </div>
+    </div>
+
+    <table>
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Item Name</th>
+                <th>Type</th>
+                <th>Quantity</th>
+                <th>Location</th>
+                <th>Last Managed By</th> <th>Action</th>
+            </tr>
+        </thead>
+        <tbody id="resTable"></tbody>
+    </table>
+</div>
+
+<div id="resModal" class="modal">
+    <div class="modal-content">
+        <h3 id="modalTitle">Add Resource</h3>
+        <input type="hidden" id="rId">
+        
+        <div class="form-group">
+            <label>Item Name</label>
+            <input type="text" id="rName" placeholder="e.g. First Aid Kit">
+        </div>
+        <div class="form-group">
+            <label>Type</label>
+            <select id="rType">
+                <option value="Medical">Medical</option>
+                <option value="Equipment">Equipment</option>
+                <option value="Vehicle">Vehicle</option>
+                <option value="Food/Water">Food/Water</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label>Quantity</label>
+            <input type="number" id="rQty" value="1" min="0">
+        </div>
+        <div class="form-group">
+            <label>Location</label>
+            <input type="text" id="rLoc" placeholder="e.g. Block A Store">
+        </div>
+
+        <div style="text-align: right;">
+            <button class="btn btn-back" onclick="closeModal()">Cancel</button>
+            <button class="btn btn-add" onclick="saveResource()">Save</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    loadResources();
+
+    async function loadResources() {
+        const resp = await fetch('/api/get_resources');
+        const data = await resp.json();
+        
+        const tbody = document.getElementById('resTable');
+        if(data.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding:20px;">No resources found.</td></tr>';
+            return;
+        }
+
+        tbody.innerHTML = data.map(r => `
+            <tr>
+                <td>#${r.id}</td>
+                <td><strong>${r.name}</strong></td>
+                <td>${r.type}</td>
+                <td>${r.quantity}</td>
+                <td>${r.location}</td>
+                <td style="color:#2563eb; font-weight:bold;">${r.managed_by}</td>
+                <td>
+                    <button class="btn btn-edit" onclick="openModal('${r.id}', '${r.name}', '${r.type}', '${r.quantity}', '${r.location}')">Edit</button>
+                    <button class="btn btn-del" onclick="deleteRes(${r.id})">Delete</button>
+                </td>
+            </tr>
+        `).join('');
+    }
+
+    function openModal(id='', name='', type='Medical', qty='1', loc='') {
+        document.getElementById('modalTitle').innerText = id ? "Edit Resource" : "Add Resource";
+        document.getElementById('rId').value = id;
+        document.getElementById('rName').value = name;
+        document.getElementById('rType').value = type;
+        document.getElementById('rQty').value = qty;
+        document.getElementById('rLoc').value = loc;
+        
+        document.getElementById('resModal').style.display = 'flex';
+    }
+
+    function closeModal() {
+        document.getElementById('resModal').style.display = 'none';
+    }
+
+    async function saveResource() {
+        const id = document.getElementById('rId').value;
+        const name = document.getElementById('rName').value;
+        const type = document.getElementById('rType').value;
+        const qty = document.getElementById('rQty').value;
+        const loc = document.getElementById('rLoc').value;
+
+        if(!name || !qty) return alert("Name and Quantity are required.");
+
+        // NEW: Send &admin_id=...
+        const url = `/api/manage_resource?id=${id}&name=${encodeURIComponent(name)}&type=${encodeURIComponent(type)}&quantity=${qty}&location=${encodeURIComponent(loc)}&admin_id=${window.currentId}`;
+        
+        const resp = await fetch(url, { method: 'POST' });
+        if(resp.ok) {
+            alert("Saved!");
+            closeModal();
+            loadResources();
+        } else {
+            alert("Error saving resource.");
+        }
+    }
+
+    async function deleteRes(id) {
+        if(!confirm("Are you sure? This will notify all Admins.")) return;
+        await fetch(`/api/delete_resource?id=${id}`, { method: 'POST' });
+        loadResources();
+    }
+</script>
+
+</body>
+</html>

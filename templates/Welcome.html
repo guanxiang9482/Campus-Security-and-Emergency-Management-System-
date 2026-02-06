@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8"> 
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ABC Security System - Welcome</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; text-align: center; padding: 50px; background: #f0f2f5; }
+        .card { background: white; padding: 40px; border-radius: 15px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); display: inline-block; width: 350px; }
+        h1 { color: #1a73e8; margin-bottom: 10px; }
+        p { color: #606770; margin-bottom: 25px; }
+        input { width: 100%; padding: 12px; margin-bottom: 15px; border: 1px solid #ddd; border-radius: 5px; box-sizing: border-box; font-size: 14px; }
+        input:focus { outline: none; border-color: #1a73e8; box-shadow: 0 0 5px rgba(26,115,232,0.2); }
+        button { background: #1a73e8; color: white; border: none; padding: 12px 25px; border-radius: 5px; cursor: pointer; width: 100%; font-size: 16px; margin-top: 10px; transition: 0.3s; }
+        button:hover { background: #1557b0; }
+        .secondary { background: #eaeffb; color: #1a73e8; border: 1px solid #1a73e8; margin-top: 20px; }
+        .secondary:hover { background: #dce6f9; }
+        hr { border: 0; border-top: 1px solid #eee; margin: 20px 0; }
+        .links { font-size: 13px; color: #1a73e8; margin-top: 15px; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h1>🚓 ABC Security</h1>
+        <p>Campus Management & Emergency System</p>
+        
+        <form action="/login" method="POST">
+            <input type="text" name="identifier" placeholder="Email/Phone" required>
+            <br>
+            <input type="password" name="password" minlength="8" maxlength="12"  placeholder="Password" required>
+            <button type="submit">LOG IN</button>
+        </form>      
+        
+        <button class="secondary" onclick="location.href='/Register.html'">REGISTER</button>
+        <hr>
+        <div class="links" onclick = "location.href='/ResetPassword.html'">Forgot password?</div>
+    </div>
+
+    <script>
+        const params = new URLSearchParams(window.location.search);
+        if (params.get('status') === 'registered') {
+            alert("Account created successfully! Please log in.");
+        }
+    </script>
+</body>
+</html>

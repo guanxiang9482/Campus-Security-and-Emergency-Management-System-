@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Digital ID System</title>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; background: #f0f2f5; display: flex; flex-direction: column; align-items: center; min-height: 100vh; margin: 0; padding: 20px; }
+        
+        /* --- LANDSCAPE ID CARD CONTAINER --- */
+        .id-card { 
+            background: white; 
+            width: 480px; 
+            height: 300px; 
+            border-radius: 15px; 
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2); 
+            overflow: hidden; 
+            display: none; 
+            flex-direction: column; 
+            position: relative; 
+            border: 1px solid #ddd;
+        }
+
+        /* Header */
+        .card-header { 
+            background: #1a73e8; 
+            color: white; 
+            padding: 10px 15px; 
+            text-align: center; 
+            height: 50px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+        .card-header h2 { margin: 0; font-size: 1.2em; text-transform: uppercase; letter-spacing: 1px;}
+        .card-header p { margin: 0; font-size: 0.7em; opacity: 0.9; font-weight: 300;}
+
+        /* Body Layout */
+        .card-body { 
+            padding: 15px 25px; 
+            display: flex; 
+            flex-direction: row; 
+            align-items: center; 
+            flex-grow: 1;
+        }
+
+        /* --- FIX 1: PHOTO CIRCLE --- */
+        .photo-section {
+            flex: 0 0 120px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-right: 20px;
+        }
+        .photo-frame { 
+            width: 110px; 
+            height: 110px; 
+            background: #f0f0f0; 
+            border: 4px solid #1a73e8; 
+            border-radius: 50%;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+        }
+        .photo-frame img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+        }
+
+        /* Info Section */
+        .info-section {
+            flex-grow: 1;
+            text-align: left;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .student-name { font-size: 1.5em; font-weight: bold; color: #333; line-height: 1.1; margin-bottom: 4px; }
+        .student-course { font-size: 0.95em; color: #666; margin-bottom: 8px; font-weight: 500;}
+        
+        .status-badge { 
+            display: inline-block;
+            background: #28a745; 
+            color: white; 
+            padding: 4px 12px; 
+            border-radius: 20px; 
+            font-size: 0.75em; 
+            text-transform: uppercase;
+            font-weight: bold;
+            width: fit-content;
+        }
+        .status-inactive { background: #dc3545; }
+
+        /* More Details Overlay */
+        .details-section { 
+            margin-top: 8px; 
+            font-size: 0.85em; 
+            display: none; 
+            background: #f1f8ff; 
+            padding: 10px; 
+            border-radius: 8px;
+            border: 1px solid #cce5ff;
+        }
+        .detail-row { display: flex; justify-content: space-between; margin-bottom: 4px; }
+        .detail-label { font-weight: bold; color: #555; margin-right: 10px;}
+        
+        /* --- FIX 2: BARCODE --- */
+        .barcode { 
+            height: 65px;
+            background: #fff; 
+            border-top: 1px solid #ddd; 
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 5px;
+        }
+        .barcode img { 
+            height: 80%; 
+            width: auto;
+            max-width: 90%; 
+            image-rendering: -webkit-optimize-contrast;
+        }
+
+        /* Buttons */
+        .action-buttons { margin-top: 12px; }
+        .btn { padding: 8px 16px; border: none; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 600; margin-right: 8px; transition: 0.2s; }
+        .btn:hover { opacity: 0.9; }
+        .btn-blue { background: #1a73e8; color: white; }
+        .btn-green { background: #28a745; color: white; }
+        /* Removed .btn-red since it's no longer used */
+        
+        /* Back Button & Messages */
+        .btn-back { position: absolute; top: 20px; left: 20px; padding: 8px 15px; background: #ddd; text-decoration: none; color: #333; border-radius: 5px; font-weight: bold; }
+        .staff-container { width: 100%; max-width: 800px; display: none; }
+        table { width: 100%; border-collapse: collapse; background: white; border-radius: 10px; overflow: hidden; box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
+        th, td { padding: 15px; text-align: left; border-bottom: 1px solid #eee; }
+        th { background: #1a73e8; color: white; }
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); display: none; justify-content: center; align-items: center; z-index: 1000; }
+    </style>
+</head>
+<body>
+
+    <a href="#" class="btn-back" onclick="window.history.back()">← Back</a>
+
+    <div id="studentInactiveMsg" style="display:none; background:white; padding:30px; border-radius:10px; text-align:center; margin-top:50px; box-shadow: 0 5px 15px rgba(0,0,0,0.1);">
+        <h2 style="color:#dc3545; margin-top:0;">⛔ ID Not Active</h2>
+        <p>Your Digital ID has not been verified yet.</p>
+        <p style="color:#666;">Please contact security staff.</p>
+    </div>
+
+    <div id="staffView" class="staff-container">
+        <h2 style="color:#1a73e8;">📋 Unverified Students List</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Course</th>
+                    <th>Status</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody id="staffTableBody"></tbody>
+        </table>
+    </div>
+
+    <div id="cardWrapper" class="modal-overlay">
+        
+        <div class="id-card" id="digitalID">
+            <div class="card-header">
+                <h2>ABC UNIVERSITY</h2>
+                <p>Digital Student Identification</p>
+            </div>
+            
+            <div class="card-body">
+                <div class="photo-section">
+                    <div class="photo-frame">
+                        <img src="icon.png" alt="User Photo">
+                    </div>
+                </div>
+
+                <div class="info-section">
+                    <div class="student-name" id="dispName">Loading...</div>
+                    <div class="student-course" id="dispCourse">...</div>
+                    <span class="status-badge" id="dispStatus">Active</span>
+
+                    <div id="moreDetailsPanel" class="details-section">
+                        <div class="detail-row"><span class="detail-label">Faculty:</span> <span id="dispFaculty"></span></div>
+                        <div class="detail-row"><span class="detail-label">Year:</span> <span id="dispYear"></span></div>
+                        <div class="detail-row"><span class="detail-label">Phone:</span> <span id="dispPhone"></span></div>
+                    </div>
+
+                    <div class="action-buttons">
+                        <button id="btnMoreDetails" class="btn btn-blue" onclick="toggleDetails()">More Details</button>
+                        
+                        <div id="staffActions" style="display:none; vertical-align: middle;">
+                            <button class="btn btn-green" onclick="approveAction()">Approve</button>
+                            <button class="btn" style="background:#f70202; color:#fffefe;" onclick="closeModal()">Close</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="barcode">
+                <img src="barcode.png" alt="Barcode">
+            </div>
+        </div>
+        </div>
+
+<script>
+    const urlParams = new URLSearchParams(window.location.search);
+    const role = urlParams.get('role'); 
+    const userId = urlParams.get('id');
+
+    let currentTargetId = null; 
+
+    // --- INIT ---
+    if (role === 'Staff') {
+        loadUnverifiedList();
+        document.getElementById('cardWrapper').style.display = 'none'; 
+    } else {
+        document.getElementById('cardWrapper').classList.remove('modal-overlay'); 
+        document.getElementById('cardWrapper').style.display = 'flex'; 
+        document.getElementById('cardWrapper').style.marginTop = '60px';
+        loadStudentCard(userId);
+    }
+
+    // --- LOAD CARD DATA ---
+    async function loadStudentCard(id) {
+        try {
+            const resp = await fetch(`/api/get_digital_id?id=${id}`);
+            if (!resp.ok) throw new Error("ID not found");
+            const data = await resp.json();
+
+            // Student: Block if inactive (Updated Logic Check)
+            if (role === 'Student' && data.verify_status !== 'Approved') {
+                document.getElementById('digitalID').style.display = 'none';
+                document.getElementById('studentInactiveMsg').style.display = 'block';
+                return;
+            }
+
+            // Populate Fields
+            document.getElementById('digitalID').style.display = 'flex';
+            document.getElementById('dispName').innerText = data.name;
+            document.getElementById('dispCourse').innerText = data.course;
+            
+            const badge = document.getElementById('dispStatus');
+            // We use verify_status here for better accuracy
+            badge.innerText = data.status 
+            
+            if(data.status === 'Active') {
+                badge.classList.remove('status-inactive');
+                badge.style.background = '#28a745';
+            } else {
+                badge.classList.add('status-inactive');
+                badge.style.background = '#dc3545';
+                
+            }
+
+            // Populate Hidden Details
+            document.getElementById('dispFaculty').innerText = data.faculty;
+            document.getElementById('dispYear').innerText = data.year;
+            document.getElementById('dispPhone').innerText = data.phone;
+        } catch (e) {
+            console.error(e);
+            alert("Could not load ID details.");
+        }
+    }
+
+    function toggleDetails() {
+        const panel = document.getElementById('moreDetailsPanel');
+        panel.style.display = (panel.style.display === 'block') ? 'none' : 'block';
+    }
+
+    // --- STAFF LOGIC ---
+    async function loadUnverifiedList() {
+        document.getElementById('staffView').style.display = 'block';
+        const resp = await fetch('/api/get_unverified_list');
+        const list = await resp.json();
+        
+        const tbody = document.getElementById('staffTableBody');
+        tbody.innerHTML = list.map(s => `
+            <tr>
+                <td><strong>${s.name}</strong></td>
+                <td>${s.course}</td>
+                <td><span style="color:#dc3545; font-weight:bold;">${s.status}</span></td>
+                <td><button class="btn btn-blue" onclick="openVerifyModal(${s.user_id})">Verify</button></td>
+            </tr>
+        `).join('');
+    }
+
+    async function openVerifyModal(targetId) {
+        currentTargetId = targetId;
+        await loadStudentCard(targetId);
+
+        // Show Modal
+        document.getElementById('cardWrapper').classList.add('modal-overlay');
+        document.getElementById('cardWrapper').style.display = 'flex';
+        document.getElementById('digitalID').style.display = 'flex';
+        
+        // Toggle Buttons
+        document.getElementById('btnMoreDetails').style.display = 'none';
+        document.getElementById('moreDetailsPanel').style.display = 'block'; 
+        
+        const staffActions = document.getElementById('staffActions');
+        staffActions.style.display = 'inline-block';
+    }
+
+    // UPDATED: Renamed to approveAction since rejection is removed
+    async function approveAction() {
+        if(!confirm("Are you sure you want to APPROVE this ID?")) return;
+
+        // Hardcoded to 'approve'
+        const actionStr = "approve"; 
+        
+        const resp = await fetch(`/api/verify_student?target_id=${currentTargetId}&action=${actionStr}&verifier_id=${userId}`, { method: 'POST' });
+
+        if(resp.ok) {
+            alert("Student Approved Successfully!");
+            closeModal();
+            loadUnverifiedList(); 
+        } else {
+            alert("Error updating status");
+        }
+    }
+
+    function closeModal() {
+        document.getElementById('cardWrapper').style.display = 'none';
+        currentTargetId = null;
+    }
+</script>
+
+</body>
+</html>
